@@ -201,8 +201,9 @@ namespace Veldrid.Vk
             VkCommandList vkCL = Util.AssertSubtype<CommandList, VkCommandList>(cl);
             VkCommandBuffer vkCB = vkCL.CommandBuffer;
 
-            vkCL.CommandBufferSubmitted(vkCB);
+            // JA: Swapped order of the following two statements to fix duplicate key exception
             SubmitCommandBuffer(vkCL, vkCB, waitSemaphoreCount, waitSemaphoresPtr, signalSemaphoreCount, signalSemaphoresPtr, fence);
+            vkCL.CommandBufferSubmitted(vkCB);
         }
 
         private void SubmitCommandBuffer(

@@ -104,7 +104,11 @@ namespace Veldrid.Vk
                 rrc.Increment();
             }
 
-            _submittedStagingInfos.Add(cb, _currentStagingInfo);
+            // JA: Added lock for thread safety
+            lock (_stagingLock)
+            {
+                _submittedStagingInfos.Add(cb, _currentStagingInfo);
+            }
             _currentStagingInfo = null;
         }
 
@@ -118,8 +122,9 @@ namespace Veldrid.Vk
                     VkCommandBuffer submittedCB = _submittedCommandBuffers[i];
                     if (submittedCB == completedCB)
                     {
-                        _availableCommandBuffers.Enqueue(completedCB);
+                        // JA: Swapped the order of the next two lines for better thread safety
                         _submittedCommandBuffers.RemoveAt(i);
+                        _availableCommandBuffers.Enqueue(completedCB);
                         i -= 1;
                     }
                 }
@@ -129,8 +134,9 @@ namespace Veldrid.Vk
             {
                 if (_submittedStagingInfos.TryGetValue(completedCB, out StagingResourceInfo info))
                 {
-                    RecycleStagingInfo(info);
+                    // JA: Swapped the order of the next two lines for better thread safety
                     _submittedStagingInfos.Remove(completedCB);
+                    RecycleStagingInfo(info);
                 }
             }
 
@@ -972,7 +978,7 @@ namespace Veldrid.Vk
                 VkImageAspectFlags aspect = (srcVkTexture.Usage & TextureUsage.DepthStencil) != 0
                     ? VkImageAspectFlags.Depth
                     : VkImageAspectFlags.Color;
-                
+
                 Util.GetMipDimensions(dstVkTexture, dstMipLevel, out uint mipWidth, out uint mipHeight, out uint mipDepth);
                 uint blockSize = FormatHelpers.IsCompressedFormat(srcVkTexture.Format) ? 4u : 1u;
                 uint bufferRowLength = Math.Max(mipWidth, blockSize);
@@ -986,7 +992,7 @@ namespace Veldrid.Vk
                 uint depthPitch = FormatHelpers.GetDepthPitch(rowPitch, bufferImageHeight, dstVkTexture.Format);
 
                 var layers = stackalloc VkBufferImageCopy[(int)layerCount];
-                for(uint layer = 0; layer < layerCount; layer++)
+                for (uint layer = 0; layer < layerCount; layer++)
                 {
                     VkSubresourceLayout dstLayout = dstVkTexture.GetSubresourceLayout(
                         dstVkTexture.CalculateSubresource(dstMipLevel, dstBaseArrayLayer + layer));
