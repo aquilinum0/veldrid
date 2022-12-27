@@ -36,7 +36,8 @@ namespace Veldrid.VirtualReality.Sample
                     Sdl2Native.SDL_WINDOWPOS_CENTERED, Sdl2Native.SDL_WINDOWPOS_CENTERED,
                     1280, 720,
                     WindowState.Normal,
-                    "Veldrid.VirtualReality Sample"));
+                    "Veldrid.VirtualReality Sample",
+                    useThreadProcessing: false));
 
             VRContextOptions options = new VRContextOptions
             {

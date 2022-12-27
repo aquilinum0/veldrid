@@ -8,6 +8,7 @@
         public int WindowHeight;
         public WindowState WindowInitialState;
         public string WindowTitle;
+        public bool UseThreadProcessing;
 
         public WindowCreateInfo(
             int x,
@@ -15,7 +16,8 @@
             int windowWidth,
             int windowHeight,
             WindowState windowInitialState,
-            string windowTitle)
+            string windowTitle,
+            bool useThreadProcessing)
         {
             X = x;
             Y = y;
@@ -23,6 +25,7 @@
             WindowHeight = windowHeight;
             WindowInitialState = windowInitialState;
             WindowTitle = windowTitle;
+            UseThreadProcessing = useThreadProcessing;
         }
     }
 }

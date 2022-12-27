@@ -62,7 +62,7 @@ namespace Veldrid.StartupUtilities
                 windowCI.WindowWidth,
                 windowCI.WindowHeight,
                 flags,
-                false);
+                windowCI.UseThreadProcessing);
 
             return window;
         }
