@@ -77,7 +77,7 @@ namespace Veldrid.Vk
                     _getImageMemoryRequirements2(_device, &requirementsInfo, &requirements);
                     size = requirements.memoryRequirements.size;
                 }
-                else if(dedicatedBuffer != Vulkan.VkBuffer.Null && _getBufferMemoryRequirements2 != null)
+                else if (dedicatedBuffer != Vulkan.VkBuffer.Null && _getBufferMemoryRequirements2 != null)
                 {
                     VkBufferMemoryRequirementsInfo2KHR requirementsInfo = VkBufferMemoryRequirementsInfo2KHR.New();
                     requirementsInfo.buffer = dedicatedBuffer;

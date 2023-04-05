@@ -2,6 +2,7 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -201,9 +202,9 @@ namespace Veldrid.Vk
             VkCommandList vkCL = Util.AssertSubtype<CommandList, VkCommandList>(cl);
             VkCommandBuffer vkCB = vkCL.CommandBuffer;
 
-            // JA: Swapped order of the following two statements to fix duplicate key exception
-            SubmitCommandBuffer(vkCL, vkCB, waitSemaphoreCount, waitSemaphoresPtr, signalSemaphoreCount, signalSemaphoresPtr, fence);
+            // JA: Swapped order of the following two statements to fix duplicate key exception (UNDONE)
             vkCL.CommandBufferSubmitted(vkCB);
+            SubmitCommandBuffer(vkCL, vkCB, waitSemaphoreCount, waitSemaphoresPtr, signalSemaphoreCount, signalSemaphoresPtr, fence);
         }
 
         private void SubmitCommandBuffer(
@@ -261,6 +262,7 @@ namespace Veldrid.Vk
 
         private void CheckSubmittedFences()
         {
+            JAJADebugWrite($"Checking Fences");
             lock (_submittedFencesLock)
             {
                 for (int i = 0; i < _submittedFences.Count; i++)

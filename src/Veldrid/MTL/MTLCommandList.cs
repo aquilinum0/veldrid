@@ -706,6 +706,11 @@ namespace Veldrid.MTL
             _currentFramebufferEverActive = false;
         }
 
+        protected override void ClearFramebufferCore()
+        {
+            throw new NotImplementedException();
+        }
+
         protected override void SetGraphicsResourceSetCore(uint slot, ResourceSet rs, uint dynamicOffsetCount, ref uint dynamicOffsets)
         {
             if (!_graphicsResourceSets[slot].Equals(rs, dynamicOffsetCount, ref dynamicOffsets))

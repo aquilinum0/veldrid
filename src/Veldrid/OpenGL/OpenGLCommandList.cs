@@ -112,6 +112,11 @@ namespace Veldrid.OpenGL
             _currentCommands.SetFramebuffer(fb);
         }
 
+        protected override void ClearFramebufferCore()
+        {
+            throw new NotImplementedException();
+        }
+
         private protected override void SetIndexBufferCore(DeviceBuffer buffer, IndexFormat format, uint offset)
         {
             _currentCommands.SetIndexBuffer(buffer, format, offset);

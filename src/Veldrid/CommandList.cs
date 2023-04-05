@@ -390,6 +390,20 @@ namespace Veldrid
         /// <param name="fb"></param>
         protected abstract void SetFramebufferCore(Framebuffer fb);
 
+        public void ClearFramebuffer()
+        {
+            if (_framebuffer != null)
+            {
+                ClearFramebufferCore();
+                _framebuffer = null;
+            }
+        }
+
+        /// <summary>
+        /// Performs API-specific handling of the <see cref="Framebuffer"/> resource.
+        /// </summary>
+        protected abstract void ClearFramebufferCore();
+
         /// <summary>
         /// Clears the color target at the given index of the active <see cref="Framebuffer"/>.
         /// The index given must be less than the number of color attachments in the active <see cref="Framebuffer"/>.

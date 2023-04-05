@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
@@ -11,6 +12,45 @@ namespace Veldrid
     /// </summary>
     public abstract class GraphicsDevice : IDisposable
     {
+        #region JA DEBUG
+        private StreamWriter _jajaDebugWriter;
+        private object _jajaLock = new object();
+
+        private void CreateDebugWriter()
+        {
+            var timestamp = System.DateTime.Now.ToString("yyyy.MM.dd_HH.mm.ss.ff");
+            var stream = new FileStream($"D:/Project42/__temp/Logs/veldrid-{timestamp}.log", FileMode.Create, FileAccess.Write);
+            _jajaDebugWriter = new StreamWriter(stream);
+        }
+        public void CleanupDebugWriter()
+        {
+            lock (_jajaLock)
+            {
+                _jajaDebugWriter?.Flush();
+                _jajaDebugWriter?.Dispose();
+                _jajaDebugWriter = null;
+            }
+        }
+        public void JAJADebugWrite(in string msg)
+        {
+            if (_jajaDebugWriter == null)
+                CreateDebugWriter();
+            var timestamp = System.DateTime.Now.ToString("yyyy.MM.dd_HH.mm.ss.ff");
+            lock (_jajaLock)
+            {
+                _jajaDebugWriter.WriteLine($"[{System.Threading.Thread.CurrentThread.ManagedThreadId}][{timestamp}] {msg}");
+                _jajaDebugWriter.Flush();
+            }
+        }
+        public void JAJADebugWrite_CommandListReturn(CommandList cl)
+        {
+            if (!(cl is Vk.VkCommandList vkCL))
+                return;
+            JAJADebugWrite($"{vkCL.CommandPool.Handle} {vkCL.CommandBuffer.Handle} CommandList Returned!");
+        }
+
+        #endregion
+
         private readonly object _deferredDisposalLock = new object();
         private readonly List<IDisposable> _disposables = new List<IDisposable>();
         private Sampler _aniso4xSampler;
@@ -852,6 +892,7 @@ namespace Veldrid
             LinearSampler.Dispose();
             _aniso4xSampler?.Dispose();
             PlatformDispose();
+            CleanupDebugWriter();
         }
 
 #if !EXCLUDE_D3D11_BACKEND

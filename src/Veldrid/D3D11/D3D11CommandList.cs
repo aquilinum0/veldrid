@@ -1139,6 +1139,11 @@ namespace Veldrid.D3D11
             _context.OMSetRenderTargets(d3dFB.RenderTargetViews, d3dFB.DepthStencilView);
         }
 
+        protected override void ClearFramebufferCore()
+        {
+            throw new NotImplementedException();
+        }
+
         private protected override void ClearColorTargetCore(uint index, RgbaFloat clearColor)
         {
             _context.ClearRenderTargetView(D3D11Framebuffer.RenderTargetViews[index], new Color4(clearColor.R, clearColor.G, clearColor.B, clearColor.A));

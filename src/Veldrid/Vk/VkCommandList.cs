@@ -81,6 +81,7 @@ namespace Veldrid.Vk
                 if (_availableCommandBuffers.Count > 0)
                 {
                     VkCommandBuffer cachedCB = _availableCommandBuffers.Dequeue();
+                    _gd.JAJADebugWrite($"{_pool.Handle} {cachedCB.Handle} Now borrowed from pool");
                     VkResult resetResult = vkResetCommandBuffer(cachedCB, VkCommandBufferResetFlags.None);
                     CheckResult(resetResult);
                     return cachedCB;
@@ -107,14 +108,30 @@ namespace Veldrid.Vk
             // JA: Added lock for thread safety
             lock (_stagingLock)
             {
-                _submittedStagingInfos.Add(cb, _currentStagingInfo);
+                try
+                {
+                    _gd.JAJADebugWrite($"{_pool.Handle} {cb.Handle} Now Submitted");
+                    _submittedStagingInfos.Add(cb, _currentStagingInfo);
+                }
+                catch (Exception e)
+                {
+                    // Wait for a moment before throwing
+                    _gd.JAJADebugWrite($"{_pool.Handle} {cb.Handle} ERROR WAS CAUGHT NOW");
+                    var task = System.Threading.Tasks.Task.Delay(100);
+                    while (!task.IsCompleted)
+                    {
+                        System.Threading.Thread.Yield();
+                    }
+                    _gd.JAJADebugWrite($"{_pool.Handle} {cb.Handle} ERROR WAS THROWN NOW");
+                    throw;
+                }
             }
             _currentStagingInfo = null;
         }
 
         public void CommandBufferCompleted(VkCommandBuffer completedCB)
         {
-
+            // JA: Swapped the order of the next two blocks for better thread safety (UNDONE)
             lock (_commandBufferListLock)
             {
                 for (int i = 0; i < _submittedCommandBuffers.Count; i++)
@@ -124,6 +141,7 @@ namespace Veldrid.Vk
                     {
                         // JA: Swapped the order of the next two lines for better thread safety
                         _submittedCommandBuffers.RemoveAt(i);
+                        _gd.JAJADebugWrite($"{_pool.Handle} {completedCB.Handle} Now in pool");
                         _availableCommandBuffers.Enqueue(completedCB);
                         i -= 1;
                     }
@@ -135,6 +153,7 @@ namespace Veldrid.Vk
                 if (_submittedStagingInfos.TryGetValue(completedCB, out StagingResourceInfo info))
                 {
                     // JA: Swapped the order of the next two lines for better thread safety
+                    _gd.JAJADebugWrite($"{_pool.Handle} {completedCB.Handle} Now Unsubmitted");
                     _submittedStagingInfos.Remove(completedCB);
                     RecycleStagingInfo(info);
                 }
@@ -143,8 +162,22 @@ namespace Veldrid.Vk
             RefCount.Decrement();
         }
 
+        private void JAJADEBUG_PrintAvailableCommandBuffers()
+        {
+            lock (_commandBufferListLock)
+            {
+                string available = "";
+                foreach (var cb in _availableCommandBuffers)
+                {
+                    available += $"{cb.Handle}, ";
+                    _gd.JAJADebugWrite($"{_pool.Handle} Available command buffers: [{available}]");
+                }
+            }
+        }
+
         public override void Begin()
         {
+            _gd.JAJADebugWrite($"{_pool.Handle} {_cb.Handle} Begin()");
             if (_commandBufferBegun)
             {
                 throw new VeldridException(
@@ -153,7 +186,10 @@ namespace Veldrid.Vk
             if (_commandBufferEnded)
             {
                 _commandBufferEnded = false;
+                JAJADEBUG_PrintAvailableCommandBuffers();
                 _cb = GetNextCommandBuffer();
+                _gd.JAJADebugWrite($"{_pool.Handle} {_cb.Handle} Got new _cb");
+                JAJADEBUG_PrintAvailableCommandBuffers();
                 if (_currentStagingInfo != null)
                 {
                     RecycleStagingInfo(_currentStagingInfo);
@@ -456,37 +492,16 @@ namespace Veldrid.Vk
             _commandBufferBegun = false;
             _commandBufferEnded = true;
 
-            if (!_currentFramebufferEverActive && _currentFramebuffer != null)
-            {
-                BeginCurrentRenderPass();
-            }
-            if (_activeRenderPass != VkRenderPass.Null)
-            {
-                EndCurrentRenderPass();
-                _currentFramebuffer.TransitionToFinalLayout(_cb);
-            }
+            ClearFramebufferCore();
 
+            _gd.JAJADebugWrite($"{_pool.Handle} {_cb.Handle} End()");
             vkEndCommandBuffer(_cb);
             _submittedCommandBuffers.Add(_cb);
         }
 
         protected override void SetFramebufferCore(Framebuffer fb)
         {
-            if (_activeRenderPass.Handle != VkRenderPass.Null)
-            {
-                EndCurrentRenderPass();
-            }
-            else if (!_currentFramebufferEverActive && _currentFramebuffer != null)
-            {
-                // This forces any queued up texture clears to be emitted.
-                BeginCurrentRenderPass();
-                EndCurrentRenderPass();
-            }
-
-            if (_currentFramebuffer != null)
-            {
-                _currentFramebuffer.TransitionToFinalLayout(_cb);
-            }
+            ClearFramebufferCore();
 
             VkFramebufferBase vkFB = Util.AssertSubtype<Framebuffer, VkFramebufferBase>(fb);
             _currentFramebuffer = vkFB;
@@ -505,6 +520,26 @@ namespace Veldrid.Vk
             }
         }
 
+        protected override void ClearFramebufferCore()
+        {
+            if (_activeRenderPass.Handle != VkRenderPass.Null)
+            {
+                EndCurrentRenderPass();
+            }
+            else if (!_currentFramebufferEverActive && _currentFramebuffer != null)
+            {
+                // This forces any queued up texture clears to be emitted.
+                BeginCurrentRenderPass();
+                EndCurrentRenderPass();
+            }
+
+            if (_currentFramebuffer != null)
+            {
+                _currentFramebuffer.TransitionToFinalLayout(_cb);
+                _currentFramebuffer = null;
+            }
+        }
+
         private void EnsureRenderPassActive()
         {
             if (_activeRenderPass == VkRenderPass.Null)
@@ -515,7 +550,7 @@ namespace Veldrid.Vk
 
         private void EnsureNoRenderPass()
         {
-            if (_activeRenderPass != VkRenderPass.Null)
+            if (_activeRenderPass.Handle != VkRenderPass.Null)
             {
                 EndCurrentRenderPass();
             }
