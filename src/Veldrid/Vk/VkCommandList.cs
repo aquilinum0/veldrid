@@ -1,13 +1,11 @@
 ﻿using System;
-using Vulkan;
-using static Vulkan.VulkanNative;
-using static Veldrid.Vk.VulkanUtil;
-using System.Diagnostics;
 using System.Collections.Generic;
-using System.Collections.Concurrent;
+using System.Diagnostics;
 using System.Text;
-
+using Vulkan;
+using static Veldrid.Vk.VulkanUtil;
 using static Vulkan.RawConstants;
+using static Vulkan.VulkanNative;
 
 namespace Veldrid.Vk
 {
@@ -81,7 +79,6 @@ namespace Veldrid.Vk
                 if (_availableCommandBuffers.Count > 0)
                 {
                     VkCommandBuffer cachedCB = _availableCommandBuffers.Dequeue();
-                    _gd.JAJADebugWrite($"{_pool.Handle} {cachedCB.Handle} Now borrowed from pool");
                     VkResult resetResult = vkResetCommandBuffer(cachedCB, VkCommandBufferResetFlags.None);
                     CheckResult(resetResult);
                     return cachedCB;
@@ -108,23 +105,7 @@ namespace Veldrid.Vk
             // JA: Added lock for thread safety
             lock (_stagingLock)
             {
-                try
-                {
-                    _gd.JAJADebugWrite($"{_pool.Handle} {cb.Handle} Now Submitted");
-                    _submittedStagingInfos.Add(cb, _currentStagingInfo);
-                }
-                catch (Exception e)
-                {
-                    // Wait for a moment before throwing
-                    _gd.JAJADebugWrite($"{_pool.Handle} {cb.Handle} ERROR WAS CAUGHT NOW");
-                    var task = System.Threading.Tasks.Task.Delay(100);
-                    while (!task.IsCompleted)
-                    {
-                        System.Threading.Thread.Yield();
-                    }
-                    _gd.JAJADebugWrite($"{_pool.Handle} {cb.Handle} ERROR WAS THROWN NOW");
-                    throw;
-                }
+                _submittedStagingInfos.Add(cb, _currentStagingInfo);
             }
             _currentStagingInfo = null;
         }
@@ -141,7 +122,6 @@ namespace Veldrid.Vk
                     {
                         // JA: Swapped the order of the next two lines for better thread safety
                         _submittedCommandBuffers.RemoveAt(i);
-                        _gd.JAJADebugWrite($"{_pool.Handle} {completedCB.Handle} Now in pool");
                         _availableCommandBuffers.Enqueue(completedCB);
                         i -= 1;
                     }
@@ -153,7 +133,6 @@ namespace Veldrid.Vk
                 if (_submittedStagingInfos.TryGetValue(completedCB, out StagingResourceInfo info))
                 {
                     // JA: Swapped the order of the next two lines for better thread safety
-                    _gd.JAJADebugWrite($"{_pool.Handle} {completedCB.Handle} Now Unsubmitted");
                     _submittedStagingInfos.Remove(completedCB);
                     RecycleStagingInfo(info);
                 }
@@ -162,22 +141,8 @@ namespace Veldrid.Vk
             RefCount.Decrement();
         }
 
-        private void JAJADEBUG_PrintAvailableCommandBuffers()
-        {
-            lock (_commandBufferListLock)
-            {
-                string available = "";
-                foreach (var cb in _availableCommandBuffers)
-                {
-                    available += $"{cb.Handle}, ";
-                }
-                _gd.JAJADebugWrite($"{_pool.Handle} Available command buffers: [{available}]");
-            }
-        }
-
         public override void Begin()
         {
-            _gd.JAJADebugWrite($"{_pool.Handle} {_cb.Handle} Begin()");
             if (_commandBufferBegun)
             {
                 throw new VeldridException(
@@ -186,10 +151,7 @@ namespace Veldrid.Vk
             if (_commandBufferEnded)
             {
                 _commandBufferEnded = false;
-                JAJADEBUG_PrintAvailableCommandBuffers();
                 _cb = GetNextCommandBuffer();
-                _gd.JAJADebugWrite($"{_pool.Handle} {_cb.Handle} Got new _cb");
-                JAJADEBUG_PrintAvailableCommandBuffers();
                 if (_currentStagingInfo != null)
                 {
                     RecycleStagingInfo(_currentStagingInfo);
@@ -494,7 +456,6 @@ namespace Veldrid.Vk
 
             ClearFramebufferCore();
 
-            _gd.JAJADebugWrite($"{_pool.Handle} {_cb.Handle} End()");
             vkEndCommandBuffer(_cb);
             lock (_commandBufferListLock)
             {

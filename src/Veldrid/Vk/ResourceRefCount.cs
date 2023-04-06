@@ -3,8 +3,7 @@ using System.Threading;
 
 namespace Veldrid.Vk
 {
-    // TODO: JAJA SHOULD BE INTERNAL NOT PUBLIC!!!
-    public class ResourceRefCount
+    internal class ResourceRefCount
     {
         private readonly Action _disposeAction;
         private int _refCount;
