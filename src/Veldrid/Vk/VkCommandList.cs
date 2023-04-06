@@ -170,8 +170,8 @@ namespace Veldrid.Vk
                 foreach (var cb in _availableCommandBuffers)
                 {
                     available += $"{cb.Handle}, ";
-                    _gd.JAJADebugWrite($"{_pool.Handle} Available command buffers: [{available}]");
                 }
+                _gd.JAJADebugWrite($"{_pool.Handle} Available command buffers: [{available}]");
             }
         }
 
@@ -496,7 +496,10 @@ namespace Veldrid.Vk
 
             _gd.JAJADebugWrite($"{_pool.Handle} {_cb.Handle} End()");
             vkEndCommandBuffer(_cb);
-            _submittedCommandBuffers.Add(_cb);
+            lock (_commandBufferListLock)
+            {
+                _submittedCommandBuffers.Add(_cb);
+            }
         }
 
         protected override void SetFramebufferCore(Framebuffer fb)
