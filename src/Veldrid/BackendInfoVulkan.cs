@@ -145,5 +145,11 @@ namespace Veldrid
             }
         }
     }
+
+    public struct MemoryUsageInfo
+    {
+        public ulong AvailableBytes;
+        public ulong AllocatedBytes;
+    }
 }
 #endif

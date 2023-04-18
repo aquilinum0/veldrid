@@ -95,6 +95,39 @@ namespace Veldrid.Vk
             return true;
         }
 
+        #region JAJA Methods
+
+        public override string GetVulkanMemoryInfo()
+        {
+            var mem = PhysicalDeviceMemProperties;
+
+            var sb = new StringBuilder();
+            sb.AppendLine($@"  Memory Types:");
+            VkMemoryType* memTypePtr = &mem.memoryTypes_0;
+            for (int i = 0; i < mem.memoryTypeCount; i++)
+            {
+                VkMemoryType* memType = memTypePtr + i;
+                sb.AppendLine($@"   [{i:00}] Props: {memType->propertyFlags}, Heap: {memType->heapIndex}");
+            }
+
+            sb.AppendLine($@"  Memory Heaps:");
+            VkMemoryHeap* memHeapPtr = &mem.memoryHeaps_0;
+            for (int i = 0; i < mem.memoryHeapCount; i++)
+            {
+                VkMemoryHeap* memHeap = memHeapPtr + i;
+                sb.AppendLine($@"   [{i:00}] Flags: {memHeap->flags}, Size: {memHeap->size}");
+            }
+
+            return sb.ToString();
+        }
+
+        public override void GetVulkanMemoryUsage(out MemoryUsageInfo info)
+        {
+            _memoryManager.GetMemoryUsage(out info);
+        }
+
+        #endregion
+
         public VkInstance Instance => _instance;
         public VkDevice Device => _device;
         public VkPhysicalDevice PhysicalDevice => _physicalDevice;
@@ -262,7 +295,6 @@ namespace Veldrid.Vk
 
         private void CheckSubmittedFences()
         {
-            JAJADebugWrite($"Checking Fences");
             lock (_submittedFencesLock)
             {
                 for (int i = 0; i < _submittedFences.Count; i++)

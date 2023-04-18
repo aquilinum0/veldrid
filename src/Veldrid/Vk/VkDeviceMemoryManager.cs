@@ -333,7 +333,7 @@ namespace Veldrid.Vk
 #if DEBUG
                             CheckAllocatedBlock(block);
 #endif
-                            _totalAllocatedBytes += alignedBlockSize;
+                            _totalAllocatedBytes += block.Size;
                             return true;
                         }
                     }
@@ -342,9 +342,11 @@ namespace Veldrid.Vk
                     return false;
                 }
             }
-
+            
             public void Free(VkMemoryBlock block)
             {
+                _totalAllocatedBytes -= block.Size;
+
                 for (int i = 0; i < _freeBlocks.Count; i++)
                 {
                     if (_freeBlocks[i].Offset > block.Offset)
@@ -362,7 +364,6 @@ namespace Veldrid.Vk
 #if DEBUG
                 RemoveAllocatedBlock(block);
 #endif
-                _totalAllocatedBytes -= block.Size;
             }
 
             private void MergeContiguousBlocks()
@@ -451,6 +452,12 @@ namespace Veldrid.Vk
             VkResult result = vkMapMemory(_device, memoryBlock.DeviceMemory, memoryBlock.Offset, memoryBlock.Size, 0, &ret);
             CheckResult(result);
             return (IntPtr)ret;
+        }
+
+        internal void GetMemoryUsage(out MemoryUsageInfo info)
+        {
+            info.AvailableBytes = 0;
+            info.AllocatedBytes = _totalAllocatedBytes;
         }
     }
 

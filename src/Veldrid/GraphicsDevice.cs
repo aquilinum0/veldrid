@@ -903,6 +903,9 @@ namespace Veldrid
 
             return info;
         }
+
+        public virtual string GetVulkanMemoryInfo() => null;
+        public virtual void GetVulkanMemoryUsage(out MemoryUsageInfo info) => info = default;
 #endif
 
 #if !EXCLUDE_OPENGL_BACKEND
