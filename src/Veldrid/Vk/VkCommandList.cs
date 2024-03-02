@@ -760,14 +760,21 @@ namespace Veldrid.Vk
 
             vkCmdCopyBuffer(_cb, srcVkBuffer.DeviceBuffer, dstVkBuffer.DeviceBuffer, 1, ref region);
 
+            bool isIndirectBuffer = (dstVkBuffer.Usage & BufferUsage.IndirectBuffer) != 0;
+
             VkMemoryBarrier barrier;
             barrier.sType = VkStructureType.MemoryBarrier;
             barrier.srcAccessMask = VkAccessFlags.TransferWrite;
-            barrier.dstAccessMask = VkAccessFlags.VertexAttributeRead;
+            barrier.dstAccessMask = isIndirectBuffer
+                ? VkAccessFlags.IndirectCommandRead
+                : VkAccessFlags.VertexAttributeRead;
             barrier.pNext = null;
             vkCmdPipelineBarrier(
                 _cb,
-                VkPipelineStageFlags.Transfer, VkPipelineStageFlags.VertexInput,
+                VkPipelineStageFlags.Transfer,
+                isIndirectBuffer
+                    ? VkPipelineStageFlags.DrawIndirect
+                    : VkPipelineStageFlags.VertexInput,
                 VkDependencyFlags.None,
                 1, ref barrier,
                 0, null,

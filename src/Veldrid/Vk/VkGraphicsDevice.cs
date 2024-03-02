@@ -97,6 +97,41 @@ namespace Veldrid.Vk
 
         #region JAJA Methods
 
+        public string GetVulkanAvailableDevicesString()
+        {
+            var sb = new StringBuilder();
+            sb.AppendLine("Physical Devices Available:");
+
+            uint deviceCount = 0;
+            vkEnumeratePhysicalDevices(_instance, ref deviceCount, null);
+            if (deviceCount == 0)
+            {
+                sb.AppendLine("  ... No devices available ...");
+                return sb.ToString();
+            }
+
+            VkPhysicalDevice[] physicalDevices = new VkPhysicalDevice[deviceCount];
+            vkEnumeratePhysicalDevices(_instance, ref deviceCount, ref physicalDevices[0]);
+
+            for (int i = 0; i < deviceCount; i++)
+            {
+                var device = physicalDevices[i];
+                vkGetPhysicalDeviceProperties(device, out var physicalDeviceProperties);
+                vkGetPhysicalDeviceFeatures(device, out var physicalDeviceFeatures);
+                vkGetPhysicalDeviceMemoryProperties(device, out var physicalDeviceMemProperties);
+
+                string deviceName = Encoding.UTF8.GetString(physicalDeviceProperties.deviceName, (int)MaxPhysicalDeviceNameSize).TrimEnd('\0');
+
+                sb.AppendLine($"  - ({i,2})  {deviceName} ({physicalDeviceProperties.driverVersion})");
+                sb.AppendLine($"         type  : {physicalDeviceProperties.deviceType}");
+                sb.AppendLine($"         vendor: {physicalDeviceProperties.vendorID:x8}");
+                sb.AppendLine($"         driver: {physicalDeviceProperties.driverVersion:x8}");
+                sb.AppendLine($"         api   : {physicalDeviceProperties.apiVersion}");
+            }
+
+            return sb.ToString();
+        }
+
         public override string GetVulkanMemoryInfo()
         {
             var mem = PhysicalDeviceMemProperties;
